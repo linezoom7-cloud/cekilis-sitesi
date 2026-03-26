@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Mortex Çekiliş – Yönetim Sistemi</title>
+<meta name="description" content="Mortex Çekiliş Yönetim Sistemi – Admin Paneli"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif']},colors:{primary:{DEFAULT:'#F59E0B',light:'#FCD34D',dark:'#D97706'},secondary:{DEFAULT:'#1E3A5F',light:'#2D5282',dark:'#0F2440'}},animation:{'spin-slow':'spin 3s linear infinite','bounce-in':'bounceIn .6s cubic-bezier(.36,.07,.19,.97) both','fade-in':'fadeIn .3s ease both'},keyframes:{bounceIn:{'0%':'transform:scale(0.3);opacity:0','60%':'transform:scale(1.1)','100%':'transform:scale(1);opacity:1'},fadeIn:{from:'opacity:0;transform:translateY(-8px)',to:'opacity:1;transform:translateY(0)'}}}}};
+</script>
+<style>
+*{box-sizing:border-box}body{font-family:'Inter',sans-serif;background:#f0f4f8}
+#sidebar{background:linear-gradient(180deg,#071628 0%,#0F2440 50%,#1E3A5F 100%);transition:transform .3s ease}
+#confetti-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9998}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#D97706;border-radius:3px}
+.entry-row:hover{background:rgba(245,158,11,.06)}
+.btn-draw{background:linear-gradient(135deg,#22D3EE,#06B6D4);box-shadow:0 0 20px rgba(34,211,238,.4);transition:all .25s}
+.btn-draw:hover{transform:translateY(-2px);box-shadow:0 0 35px rgba(34,211,238,.65)}
+.btn-primary{background:linear-gradient(135deg,#F59E0B,#D97706);transition:all .2s}
+.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-danger{background:linear-gradient(135deg,#EF4444,#DC2626);transition:all .2s}
+.btn-danger:hover{filter:brightness(1.1);transform:translateY(-1px)}
+#winner-modal,#spinning-modal{backdrop-filter:blur(8px)}
+.winner-card{background:linear-gradient(135deg,#0F2440,#1E3A5F);border:2px solid #22D3EE;box-shadow:0 0 60px rgba(34,211,238,.3)}
+.spin-card{background:linear-gradient(135deg,#071628,#0F2440);border:2px solid #F59E0B;box-shadow:0 0 40px rgba(245,158,11,.3)}
+.login-card{background:linear-gradient(135deg,#0F2440,#1E3A5F);border:1px solid rgba(34,211,238,.25)}
+.badge-active{background:rgba(34,211,238,.15);color:#22D3EE;border:1px solid rgba(34,211,238,.3)}
+.badge-drawn{background:rgba(245,158,11,.15);color:#F59E0B;border:1px solid rgba(245,158,11,.3)}
+.badge-cancelled{background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.3)}
+.nav-item{border-radius:10px;transition:all .2s;cursor:pointer}
+.nav-item:hover,.nav-item.active{background:rgba(245,158,11,.2);color:#F59E0B}
+.nav-item.active{border-left:3px solid #F59E0B}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.float-anim{animation:float 3s ease-in-out infinite}
+@keyframes spinName{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.spin-name{animation:spinName .15s ease-in-out infinite}
+.input-dark{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:white;border-radius:8px;padding:10px 14px;width:100%;outline:none;transition:border-color .2s}
+.input-dark:focus{border-color:#22D3EE;box-shadow:0 0 0 3px rgba(34,211,238,.15)}
+.input-dark::placeholder{color:rgba(255,255,255,.35)}
+.input-admin{background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 14px;width:100%;outline:none;transition:border-color .2s,box-shadow .2s}
+.input-admin:focus{border-color:#22D3EE;box-shadow:0 0 0 3px rgba(34,211,238,.15)}
+/* Mobile */
+@media(max-width:767px){
+  #sidebar{position:fixed;top:0;left:0;height:100%;z-index:900;transform:translateX(-100%)}
+  #sidebar.open{transform:translateX(0)}
+  #mobile-overlay{display:block}
+  #app-main{margin-left:0!important}
+}
+#mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:899}
+/* Print */
+@media print{
+  #sidebar,#draw-btn,#add-entry-section,.btn-danger,.btn-danger-outline,#toast,#confetti-canvas,#winner-modal,#spinning-modal,.no-print{display:none!important}
+  body{background:white}
+  #app-main{padding:20px}
+  .winner-highlight{background:#FEF9C3!important;border:2px solid #F59E0B}
+  
+  @page { margin: 0; size: landscape; }
+  .print-certificate {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: white; z-index: 99999; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      border: 30px solid #F59E0B; padding: 50px; outline: 10px solid #1E3A5F; outline-offset: -10px;
+  }
+  .print-certificate h1 { font-size: 55px; color: #1E3A5F; margin-bottom: 10px; font-weight: 900; }
+  .print-certificate h2 { font-size: 35px; color: #F59E0B; margin-bottom: 40px; }
+  .print-certificate .winner-box { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-bottom: 40px; }
+  .print-certificate .winner-name { font-size: 60px; font-weight: 900; color: #000; text-transform: uppercase; background: #f8fafc; padding: 15px 40px; border-radius: 20px; border: 4px dashed #cbd5e1; }
+  .print-certificate .cert-date { font-size: 24px; color: #64748b; font-weight: bold; margin-top: auto; }
+  .print-certificate .cert-logo { width: 120px; height: 120px; margin-bottom: 30px; object-fit: contain; }
+  .print-cert-mode #app-main, .print-cert-mode #sidebar { display: none !important; }
+}
+
+/* Dark Mode Overrides */
+body.dark { background: #071628; color: #F1F5F9; }
+.dark .bg-white { background: #0F2440 !important; border-color: rgba(255,255,255,0.05) !important; color: #F1F5F9; }
+.dark .text-secondary-dark, .dark .text-gray-800, .dark .text-gray-700 { color: #F1F5F9 !important; }
+.dark .text-gray-600, .dark .text-gray-500, .dark .text-gray-400 { color: #94A3B8 !important; }
+.dark .border-gray-100, .dark .border-gray-200 { border-color: rgba(255,255,255,0.05) !important; }
+.dark .input-admin { background: rgba(255,255,255,0.05); color: white; border-color: rgba(255,255,255,0.1); }
+.dark .input-admin::placeholder { color: rgba(255,255,255,0.3); }
+.dark .hover\:bg-gray-100:hover { background: rgba(255,255,255,0.05) !important; }
+.dark .border-gray-50 { border-color: rgba(255,255,255,0.02) !important; }
+.dark tr.border-t { border-color: rgba(255,255,255,0.05); }
+.dark th { background: rgba(255,255,255,0.02) !important; color: #cbd5e1 !important; }
+.dark .winner-highlight { background: rgba(245,158,11,0.1) !important; border-color: rgba(245,158,11,0.3) !important; }
+</style>
+</head>
+<body class="min-h-screen">
+<canvas id="confetti-canvas" style="display:none"></canvas>
+
+<!-- ═══ SPINNING MODAL ═══ -->
+<div id="spinning-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background:rgba(7,22,40,.9)">
+  <div class="spin-card rounded-3xl p-10 max-w-sm w-full mx-4 text-center">
+    <div class="text-4xl mb-4">🎲</div>
+    <div class="text-xs font-bold tracking-widest mb-4" style="color:#F59E0B">ÇEKİLİYOR...</div>
+    <div id="spinning-name" class="text-3xl font-black text-white mb-2 spin-name" style="min-height:2.5rem">—</div>
+    <div class="mt-4 flex justify-center gap-1">
+      <span class="w-2 h-2 rounded-full bg-amber-400 animate-bounce" style="animation-delay:0s"></span>
+      <span class="w-2 h-2 rounded-full bg-amber-400 animate-bounce" style="animation-delay:.15s"></span>
+      <span class="w-2 h-2 rounded-full bg-amber-400 animate-bounce" style="animation-delay:.3s"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center p-4" style="background:linear-gradient(135deg,#071628 0%,#0F2440 50%,#1E3A5F 100%)">
+  <div class="login-card rounded-2xl p-8 w-full max-w-md shadow-2xl animate-fade-in">
+    <div class="text-center mb-8">
+      <div class="float-anim inline-block mb-4">
+        <img src="/static/logo.png" alt="Mortex Çekiliş" class="w-40 h-40 object-contain mx-auto drop-shadow-2xl"/>
+      </div>
+      <h1 class="text-3xl font-black text-white mb-1">Mortex <span style="color:#F59E0B">Çekiliş</span></h1>
+      <p class="text-sm" style="color:rgba(255,255,255,.5)">Yönetim Sistemi – Admin Girişi</p>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="text-xs font-semibold mb-1 block" style="color:rgba(255,255,255,.6)">KULLANICI ADI</label>
+        <input id="login-username" type="text" placeholder="admin" class="input-dark"/>
+      </div>
+      <div>
+        <label class="text-xs font-semibold mb-1 block" style="color:rgba(255,255,255,.6)">ŞİFRE</label>
+        <input id="login-password" type="password" placeholder="••••••••" class="input-dark" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <div id="login-error" class="text-red-400 text-sm text-center hidden p-3 rounded-lg" style="background:rgba(239,68,68,.1)"></div>
+      <button onclick="doLogin()" class="btn-primary w-full py-3 rounded-xl text-white font-bold text-base mt-2">
+        <span id="login-btn-text">🔐 Giriş Yap</span>
+      </button>
+    </div>
+    <p class="text-center text-xs mt-6" style="color:rgba(255,255,255,.3)">© 2024 Mortex Çekiliş</p>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div id="app" class="hidden min-h-screen flex">
+  <div id="mobile-overlay" onclick="closeSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="w-64 min-h-screen flex flex-col p-5 shadow-2xl flex-shrink-0" style="height:100vh;overflow-y:auto">
+    <div class="flex items-center gap-2 mb-8 pb-5 border-b" style="border-color:rgba(255,255,255,.1)">
+      <img src="/static/logo.png" alt="Logo" class="w-12 h-12 object-contain flex-shrink-0"/>
+      <div>
+        <div class="font-black text-white text-base leading-none">Mortex</div>
+        <div class="text-xs" style="color:#F59E0B">Çekiliş Yönetimi</div>
+      </div>
+      <button onclick="closeSidebar()" class="ml-auto text-white opacity-50 hover:opacity-100 md:hidden text-xl leading-none">✕</button>
+    </div>
+    <nav class="space-y-1 flex-1">
+      <button onclick="showView('dashboard')" id="nav-dashboard" class="nav-item active w-full text-left px-4 py-3 text-white text-sm font-medium flex items-center gap-3"><span>🏠</span>Dashboard</button>
+      <button onclick="showView('raffles')" id="nav-raffles" class="nav-item w-full text-left px-4 py-3 text-white text-sm font-medium flex items-center gap-3"><span>🎰</span>Çekilişler</button>
+      <button onclick="showView('create-raffle')" id="nav-create-raffle" class="nav-item w-full text-left px-4 py-3 text-white text-sm font-medium flex items-center gap-3"><span>➕</span>Yeni Çekiliş</button>
+      <button onclick="showView('winners-history')" id="nav-winners-history" class="nav-item w-full text-left px-4 py-3 text-white text-sm font-medium flex items-center gap-3"><span>🏆</span>Kazanan Geçmişi</button>
+      <button onclick="showView('settings')" id="nav-settings" class="nav-item w-full text-left px-4 py-3 text-white text-sm font-medium flex items-center gap-3"><span>⚙️</span>Ayarlar</button>
+    </nav>
+    <button onclick="toggleDarkMode()" class="nav-item w-full text-left px-4 py-3 text-white text-sm font-medium flex items-center gap-3 mt-4" style="background:rgba(255,255,255,.05)"><span>🌙</span>Gece Modu</button>
+    <button onclick="doLogout()" class="nav-item w-full text-left px-4 py-3 text-red-400 text-sm font-medium flex items-center gap-3 mt-2"><span>🚪</span>Çıkış Yap</button>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="app-main" class="flex-1 p-6 md:p-8 overflow-y-auto">
+    <!-- Mobile hamburger -->
+    <button onclick="openSidebar()" class="md:hidden mb-4 p-2 rounded-lg bg-white shadow border border-gray-200 text-secondary-dark no-print">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+
+    <!-- ── DASHBOARD ── -->
+    <div id="view-dashboard" class="view-section">
+      <div class="mb-6"><h2 class="text-2xl md:text-3xl font-black text-secondary-dark mb-1">Ana Panel 🎉</h2><p class="text-gray-500 text-sm">Hoş geldiniz, Admin.</p></div>
+      <div id="stats-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Top Raffles -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">🔥 En Aktif Çekilişler</h3>
+          <div id="top-raffles-list" class="space-y-3">
+            <div class="text-sm text-gray-400">Yükleniyor...</div>
+          </div>
+        </div>
+        
+        <!-- Recent Winners -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">🏆 Son Kazananlar</h3>
+          <div id="recent-winners-list" class="space-y-3">
+            <div class="text-sm text-gray-400">Yükleniyor...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h3 class="font-bold text-gray-700 mb-4">⚡ Hızlı İşlemler</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button onclick="showView('create-raffle')" class="btn-primary p-4 rounded-xl text-white font-semibold flex items-center gap-3 text-left"><span class="text-2xl">🎰</span><div><div class="font-bold">Yeni Çekiliş</div><div class="text-xs opacity-75">Çekiliş oluştur</div></div></button>
+          <button onclick="showView('raffles')" class="p-4 rounded-xl font-semibold flex items-center gap-3 border-2 border-gray-200 hover:border-amber-400 transition-all text-secondary-dark text-left"><span class="text-2xl">📋</span><div><div class="font-bold">Çekilişleri Gör</div><div class="text-xs text-gray-400">Listele ve yönet</div></div></button>
+          <button onclick="showView('winners-history')" class="p-4 rounded-xl font-semibold flex items-center gap-3 border-2 border-gray-200 hover:border-amber-400 transition-all text-secondary-dark text-left"><span class="text-2xl">🏆</span><div><div class="font-bold">Kazanan Geçmişi</div><div class="text-xs text-gray-400">Tüm kazananlar</div></div></button>
+          <button onclick="showView('settings')" class="p-4 rounded-xl font-semibold flex items-center gap-3 border-2 border-gray-200 hover:border-amber-400 transition-all text-secondary-dark text-left"><span class="text-2xl">⚙️</span><div><div class="font-bold">Ayarlar</div><div class="text-xs text-gray-400">Şifre değiştir</div></div></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RAFFLES LIST ── -->
+    <div id="view-raffles" class="view-section hidden">
+      <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div><h2 class="text-2xl md:text-3xl font-black text-secondary-dark mb-1">Çekilişler 🎰</h2><p class="text-gray-500 text-sm">Tüm çekilişlerinizi yönetin.</p></div>
+        <button onclick="showView('create-raffle')" class="btn-primary px-5 py-2.5 rounded-xl text-white font-bold text-sm">+ Yeni</button>
+      </div>
+      <div id="raffle-list" class="space-y-4"></div>
+    </div>
+
+    <!-- ── CREATE RAFFLE ── -->
+    <div id="view-create-raffle" class="view-section hidden">
+      <div class="mb-6"><h2 class="text-2xl md:text-3xl font-black text-secondary-dark mb-1">Yeni Çekiliş ➕</h2></div>
+      <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 max-w-xl">
+        <div class="space-y-5">
+          <div><label class="block text-sm font-semibold text-gray-600 mb-2">Çekiliş Adı *</label><input id="raffle-name" type="text" placeholder="ör. Nisan 2024 Çekilişi" class="input-admin"/></div>
+          <div><label class="block text-sm font-semibold text-gray-600 mb-2">Çekiliş Tarihi *</label><input id="raffle-date" type="date" class="input-admin"/></div>
+          <div id="create-error" class="text-red-500 text-sm hidden p-3 rounded-lg bg-red-50"></div>
+          <button onclick="createRaffle()" class="btn-primary w-full py-3 rounded-xl text-white font-bold text-base">🎰 Çekilişi Oluştur</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RAFFLE DETAIL ── -->
+    <div id="view-raffle-detail" class="view-section hidden">
+      <div class="mb-4 flex items-center gap-3 flex-wrap">
+        <button onclick="showView('raffles')" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 no-print">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="flex-1">
+          <h2 id="detail-raffle-name" class="text-2xl md:text-3xl font-black text-secondary-dark mb-0.5"></h2>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span id="detail-raffle-date" class="text-gray-400 text-sm"></span>
+            <span id="detail-raffle-status" class="badge-active text-xs font-semibold px-2.5 py-0.5 rounded-full"></span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap no-print">
+          <!-- Winner count selector -->
+          <div class="flex items-center gap-1 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-200" id="winner-count-wrap">
+            <span class="text-xs text-gray-500 font-medium">Kazanan:</span>
+            <input id="winner-count" type="number" min="1" max="20" value="1" class="w-12 text-center font-bold text-secondary-dark border-none outline-none text-sm bg-transparent"/>
+          </div>
+          <button id="draw-btn" onclick="drawWinner()" class="btn-draw px-5 py-2.5 rounded-xl text-white font-bold text-sm flex items-center gap-2">🎲 Kazananı Çek!</button>
+          <button onclick="resetCurrentRaffle()" id="reset-btn" class="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-amber-300 text-amber-600 hover:bg-amber-50 transition-all">🔄 Sıfırla</button>
+          <button onclick="copyCurrentRaffle()" class="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-cyan-300 text-cyan-600 hover:bg-cyan-50 transition-all">📋 Kopyala</button>
+          <button onclick="printRaffle()" class="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-all">🖨️ PDF</button>
+          <button id="cert-btn" onclick="printCertificate()" class="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-purple-300 text-purple-600 hover:bg-purple-50 transition-all hidden">📜 Sertifika</button>
+          <button onclick="window.open('/live/'+currentRaffleId, '_blank')" class="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-pink-300 text-pink-600 hover:bg-pink-50 transition-all">📺 Canlı Yayın</button>
+          <button onclick="exportRaffleEntries()" class="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-green-300 text-green-600 hover:bg-green-50 transition-all">📊 Excel</button>
+          <button onclick="deleteCurrentRaffle()" class="px-4 py-2.5 rounded-xl font-bold text-sm border-2 border-red-200 text-red-500 hover:bg-red-50 transition-all">🗑️ Sil</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center"><div id="stat-participants" class="text-3xl font-black" style="color:#1E3A5F">0</div><div class="text-xs text-gray-400 mt-0.5">Katılımcı</div></div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center"><div id="stat-tickets" class="text-3xl font-black" style="color:#F59E0B">0</div><div class="text-xs text-gray-400 mt-0.5">Toplam Bilet</div></div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center"><div id="stat-odds" class="text-3xl font-black" style="color:#22D3EE">—</div><div class="text-xs text-gray-400 mt-0.5">Max İhtimal</div></div>
+      </div>
+
+      <!-- Winners display -->
+      <div id="current-winners-section" class="hidden bg-white rounded-xl p-4 mb-4 shadow-sm border-2 border-amber-300">
+        <h4 class="font-bold text-amber-700 text-sm mb-2">🏆 Bu Çekilişin Kazananları</h4>
+        <div id="current-winners-list" class="space-y-1"></div>
+      </div>
+
+      <!-- Add Participant -->
+      <div id="add-entry-section" class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-4 no-print">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 class="font-bold text-gray-700 text-sm flex items-center gap-2">👤 Katılımcı Ekle</h3>
+          <label class="btn-primary px-4 py-2 rounded-lg text-white font-bold text-xs cursor-pointer flex items-center gap-2">
+            📂 Dosya Yükle
+            <input type="file" id="csv-file" accept=".csv,.txt,.xlsx" class="hidden" onchange="importCSV()"/>
+          </label>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input id="entry-name" type="text" placeholder="İsim Soyisim *" class="input-admin sm:col-span-2" onkeydown="if(event.key==='Enter')addEntry()"/>
+          <input id="entry-tickets" type="number" min="1" value="1" placeholder="Hak Sayısı" class="input-admin"/>
+          <button onclick="addEntry()" class="btn-primary py-2.5 rounded-xl text-white font-bold text-sm sm:col-span-3">+ Katılımcı Ekle</button>
+        </div>
+        <div class="text-xs text-gray-400 mt-2">💡 CSV formatı: <code>İsim Soyisim,BiletSayısı</code> (başlık satırı olmadan)</div>
+        <div id="entry-error" class="text-red-500 text-xs mt-2 hidden"></div>
+      </div>
+
+      <!-- Search + Table -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+          <h3 class="font-bold text-gray-700 text-sm">📋 Katılımcı Listesi</h3>
+          <input id="search-input" type="text" placeholder="🔍 Ara..." class="input-admin text-sm no-print" style="max-width:220px;padding:7px 12px" oninput="filterEntries()"/>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="text-xs font-semibold text-gray-400 uppercase tracking-wide" style="background:#f8fafc">
+                <th class="px-4 py-3 text-left">#</th>
+                <th class="px-4 py-3 text-left cursor-pointer select-none hover:text-amber-500 transition-colors" onclick="sortEntries('full_name')">İsim Soyisim <span id="sort-name"></span></th>
+                <th class="px-4 py-3 text-center cursor-pointer select-none hover:text-amber-500 transition-colors" onclick="sortEntries('tickets')">Bilet <span id="sort-tickets"></span></th>
+                <th class="px-4 py-3 text-center">Şans %</th>
+                <th class="px-4 py-3 text-center no-print">İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="entries-tbody"></tbody>
+          </table>
+          <div id="no-entries" class="text-center py-10 text-gray-400 hidden"><div class="text-4xl mb-2">🎟️</div><div>Henüz katılımcı yok.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WINNERS HISTORY ── -->
+    <div id="view-winners-history" class="view-section hidden">
+      <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div><h2 class="text-2xl md:text-3xl font-black text-secondary-dark mb-1">Kazanan Geçmişi 🏆</h2><p class="text-gray-500 text-sm">Tüm çekilişlerdeki kazananlar.</p></div>
+        <button onclick="exportWinners()" class="btn-primary px-5 py-2.5 rounded-xl text-white font-bold text-sm">📊 Excel'e Aktar</button>
+      </div>
+      <div id="winners-history-list" class="space-y-3"></div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div id="view-settings" class="view-section hidden">
+      <div class="mb-6"><h2 class="text-2xl md:text-3xl font-black text-secondary-dark mb-1">Ayarlar ⚙️</h2><p class="text-gray-500 text-sm">Admin şifresi ve sistem ayarları.</p></div>
+      <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 max-w-md">
+        <h3 class="font-bold text-gray-700 mb-5 text-base flex items-center gap-2">🔑 Şifre Değiştir</h3>
+        <div class="space-y-4">
+          <div><label class="block text-sm font-semibold text-gray-600 mb-2">Mevcut Şifre</label><input id="pw-current" type="password" placeholder="••••••••" class="input-admin"/></div>
+          <div><label class="block text-sm font-semibold text-gray-600 mb-2">Yeni Şifre</label><input id="pw-new" type="password" placeholder="En az 6 karakter" class="input-admin"/></div>
+          <div><label class="block text-sm font-semibold text-gray-600 mb-2">Yeni Şifre (Tekrar)</label><input id="pw-confirm" type="password" placeholder="••••••••" class="input-admin" onkeydown="if(event.key==='Enter')changePassword()"/></div>
+          <div id="pw-error" class="text-red-500 text-sm hidden p-3 rounded-lg bg-red-50"></div>
+          <div id="pw-success" class="text-green-600 text-sm hidden p-3 rounded-lg bg-green-50"></div>
+          <button onclick="changePassword()" class="btn-primary w-full py-3 rounded-xl text-white font-bold">💾 Şifreyi Güncelle</button>
+        </div>
+        <div class="mt-8 pt-6 border-t border-gray-100">
+          <h3 class="font-bold text-gray-700 mb-3 text-base">ℹ️ Sistem Bilgisi</h3>
+          <div class="space-y-2 text-sm text-gray-500">
+            <div class="flex justify-between"><span>Versiyon</span><span class="font-medium">v2.0</span></div>
+            <div class="flex justify-between"><span>Veritabanı</span><span class="font-medium">SQLite</span></div>
+            <div class="flex justify-between"><span>Oturum Süresi</span><span class="font-medium">30 dakika</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══ WINNER MODAL ═══ -->
+<div id="winner-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background:rgba(7,22,40,.85)">
+  <div class="winner-card rounded-3xl p-8 max-w-lg w-full mx-4 text-center animate-bounce-in">
+    <div class="text-5xl mb-3">🏆</div>
+    <div class="text-xs font-bold tracking-widest mb-3" style="color:#22D3EE">KAZANAN BELİRLENDİ</div>
+    <div id="winner-list" class="space-y-3 mb-6"></div>
+    <button onclick="closeWinnerModal()" class="btn-primary px-8 py-3 rounded-xl text-white font-bold">Tamam, Harika! 🎉</button>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast" class="fixed top-5 right-5 z-50 hidden">
+  <div id="toast-inner" class="px-5 py-3.5 rounded-xl shadow-xl text-white font-semibold text-sm flex items-center gap-3 min-w-60"></div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+let currentRaffleId=null, currentRaffleData=null, allEntries=[];
+let inactivityTimer=null;
+let sortField=null, sortDir=1; // 1=asc, -1=desc
+let drumLoop=null;
+const INACTIVITY_MS=30*60*1000;
+
+// ── INIT ───────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',async()=>{
+  if(localStorage.getItem('mortexTheme')==='dark') document.body.classList.add('dark');
+  const res=await fetch('/api/me');
+  const d=await res.json();
+  if(d.logged_in)showApp();else showLoginScreen();
+  document.getElementById('raffle-date').valueAsDate=new Date();
+});
+
+// ── SESSION TIMEOUT ────────────────────────────────────────────
+function resetInactivity(){
+  clearTimeout(inactivityTimer);
+  inactivityTimer=setTimeout(async()=>{
+    await fetch('/api/logout',{method:'POST'});
+    showLoginScreen();
+    showToast('⏰ Oturum süresi doldu. Lütfen tekrar giriş yapın.','#F59E0B');
+  },INACTIVITY_MS);
+}
+document.addEventListener('mousemove',resetInactivity);
+document.addEventListener('keydown',resetInactivity);
+document.addEventListener('click',resetInactivity);
+
+// ── AUTH ───────────────────────────────────────────────────────
+async function doLogin(){
+  const btn=document.getElementById('login-btn-text');
+  btn.textContent='⏳ Giriş yapılıyor...';
+  const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:document.getElementById('login-username').value,password:document.getElementById('login-password').value})});
+  const d=await res.json();
+  if(d.success){showApp();}
+  else{
+    const e=document.getElementById('login-error');
+    e.textContent=d.message;e.classList.remove('hidden');
+    btn.textContent='🔐 Giriş Yap';
+  }
+}
+async function doLogout(){await fetch('/api/logout',{method:'POST'});showLoginScreen();}
+function showLoginScreen(){document.getElementById('login-screen').classList.remove('hidden');document.getElementById('app').classList.add('hidden');}
+function showApp(){document.getElementById('login-screen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');resetInactivity();showView('dashboard');}
+
+// ── NAVIGATION ─────────────────────────────────────────────────
+function showView(view){
+  document.querySelectorAll('.view-section').forEach(s=>s.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+view)?.classList.remove('hidden');
+  const n=document.getElementById('nav-'+view);if(n)n.classList.add('active');
+  if(view==='dashboard')loadDashboard();
+  if(view==='raffles')loadRaffles();
+  if(view==='winners-history')loadWinnersHistory();
+  closeSidebar();
+}
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('mobile-overlay').style.display='block';}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('mobile-overlay').style.display='none';}
+
+function toggleDarkMode(){
+  document.body.classList.toggle('dark');
+  localStorage.setItem('mortexTheme', document.body.classList.contains('dark') ? 'dark' : 'light');
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────
+async function loadDashboard(){
+  const [raffles, winners] = await Promise.all([
+    apiFetch('/api/raffles'),
+    apiFetch('/api/winners')
+  ]);
+  if(!raffles||!Array.isArray(raffles))return;
+  const active=raffles.filter(r=>r.status==='active').length;
+  const drawn=raffles.filter(r=>r.status==='drawn').length;
+  const total=raffles.reduce((s,r)=>s+(r.participant_count||0),0);
+  document.getElementById('stats-grid').innerHTML=
+    statCard('🎰',raffles.length,'Toplam Çekiliş','#1E3A5F')+
+    statCard('✅',active,'Aktif','#22D3EE')+
+    statCard('🏆',drawn,'Tamamlanan','#F59E0B')+
+    statCard('👥',total,'Toplam Katılımcı','#8B5CF6');
+
+  const topList = [...raffles].sort((a,b)=>(b.participant_count||0)-(a.participant_count||0)).slice(0,3);
+  const rCont = document.getElementById('top-raffles-list');
+  if(topList.length===0){
+    rCont.innerHTML = '<div class="text-sm text-gray-500">Henüz çekiliş yok.</div>';
+  } else {
+    rCont.innerHTML = topList.map(r=>`
+      <div class="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 cursor-pointer hover:border-amber-300 transition-colors" onclick="openRaffle(${r.id})">
+        <div><div class="font-bold text-gray-800 text-sm">${escHtml(r.name)}</div><div class="text-xs text-gray-400">${r.draw_date}</div></div>
+        <div class="font-bold text-amber-600 text-sm px-2 py-1 bg-amber-100 rounded-lg">👥 ${r.participant_count||0}</div>
+      </div>
+    `).join('');
+  }
+
+  const wCont = document.getElementById('recent-winners-list');
+  if(!winners || winners.length===0){
+    wCont.innerHTML = '<div class="text-sm text-gray-500">Henüz kazanan yok.</div>';
+  } else {
+    const recents = [...winners].slice(0,4);
+    wCont.innerHTML = recents.map(w=>`
+      <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+        <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs flex-shrink-0">🏆</div>
+        <div class="flex-1 min-w-0">
+            <div class="font-bold text-gray-800 text-sm truncate">${escHtml(w.full_name)}</div>
+            <div class="text-xs text-gray-400 truncate">${escHtml(w.raffle_name)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+function statCard(icon,val,label,color){
+  return`<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-3">
+    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style="background:${color}22">${icon}</div>
+    <div><div class="text-3xl font-black" style="color:${color}">${val}</div><div class="text-xs text-gray-400 font-medium">${label}</div></div>
+  </div>`;
+}
+
+// ── RAFFLES LIST ───────────────────────────────────────────────
+async function loadRaffles(){
+  const raffles=await apiFetch('/api/raffles');
+  const c=document.getElementById('raffle-list');
+  if(!raffles||raffles.length===0){
+    c.innerHTML=`<div class="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100"><div class="text-5xl mb-3">🎰</div><div class="font-bold text-gray-500">Henüz çekiliş yok.</div><button onclick="showView('create-raffle')" class="btn-primary mt-4 px-6 py-2.5 rounded-xl text-white font-bold text-sm">İlk Çekilişi Oluştur</button></div>`;
+    return;
+  }
+  const sm={active:{cls:'badge-active',l:'Aktif'},drawn:{cls:'badge-drawn',l:'Tamamlandı'},cancelled:{cls:'badge-cancelled',l:'İptal'}};
+  c.innerHTML=raffles.map(r=>{
+    const s=sm[r.status]||sm.active;
+    return`<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style="background:linear-gradient(135deg,#F59E0B22,#D9770622)">🎰</div>
+        <div><div class="font-bold text-gray-800">${escHtml(r.name)}</div><div class="text-xs text-gray-400">📅 ${r.draw_date} · 👥 ${r.participant_count} katılımcı</div></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="${s.cls} text-xs font-semibold px-2.5 py-1 rounded-full">${s.l}</span>
+        <button onclick="openRaffle(${r.id})" class="btn-primary px-4 py-2 rounded-lg text-white text-xs font-bold">Aç →</button>
+        <button onclick="deleteRaffle(${r.id})" class="p-2 rounded-lg text-red-400 hover:bg-red-50 transition-colors" title="Sil">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function createRaffle(){
+  const name=document.getElementById('raffle-name').value.trim();
+  const date=document.getElementById('raffle-date').value;
+  const errEl=document.getElementById('create-error');errEl.classList.add('hidden');
+  if(!name||!date){errEl.textContent='Lütfen çekiliş adı ve tarihini girin.';errEl.classList.remove('hidden');return;}
+  const res=await apiFetch('/api/raffles','POST',{name,draw_date:date});
+  if(res&&res.success){document.getElementById('raffle-name').value='';showToast('✅ Çekiliş oluşturuldu!','#22D3EE');showView('raffles');}
+  else{errEl.textContent=res?.error||'Bir hata oluştu.';errEl.classList.remove('hidden');}
+}
+
+async function deleteRaffle(id){
+  if(!confirm('Bu çekilişi ve tüm katılımcıları silmek istediğinizden emin misiniz?'))return;
+  const res=await apiFetch('/api/raffles/'+id,'DELETE');
+  if(res&&res.success){showToast('🗑️ Çekiliş silindi.','#EF4444');loadRaffles();}
+}
+
+async function deleteCurrentRaffle(){
+  if(!currentRaffleId)return;
+  if(!confirm('Bu çekilişi silmek istediğinizden emin misiniz?'))return;
+  const res=await apiFetch('/api/raffles/'+currentRaffleId,'DELETE');
+  if(res&&res.success){showToast('🗑️ Çekiliş silindi.','#EF4444');currentRaffleId=null;showView('raffles');}
+}
+
+async function resetCurrentRaffle(){
+  if(!currentRaffleId)return;
+  if(!confirm('Çekilişi sıfırlamak istediğinizden emin misiniz? Tüm kazanan kayıtları silinir.'))return;
+  const res=await apiFetch('/api/raffles/'+currentRaffleId+'/reset','POST');
+  if(res&&res.success){showToast('🔄 Çekiliş sıfırlandı!','#F59E0B');loadRaffleDetail();}
+}
+
+async function copyCurrentRaffle(){
+  if(!currentRaffleId)return;
+  const name=prompt('Kopyalanacak çekilişin adı:','');
+  if(!name)return;
+  const res=await apiFetch('/api/raffles/'+currentRaffleId+'/copy','POST',{name,copy_entries:true});
+  if(res&&res.success){showToast('📋 Çekiliş kopyalandı!','#22D3EE');showView('raffles');}
+  else showToast('⚠️ '+(res?.error||'Hata'),'#EF4444');
+}
+
+function printRaffle(){window.print();}
+
+function exportRaffleEntries(){
+  if(!currentRaffleId)return;
+  window.location.href='/api/raffles/'+currentRaffleId+'/export';
+}
+
+function exportWinners(){
+  window.location.href='/api/winners/export';
+}
+
+function sortEntries(field){
+  if(sortField===field)sortDir*=-1;
+  else{sortField=field;sortDir=1;}
+  document.getElementById('sort-name').textContent='';
+  document.getElementById('sort-tickets').textContent='';
+  if(field==='full_name')document.getElementById('sort-name').textContent=sortDir===1?' ↑':' ↓';
+  else document.getElementById('sort-tickets').textContent=sortDir===1?' ↑':' ↓';
+  if(!currentRaffleData)return;
+  const{total_tickets,winners}=currentRaffleData;
+  const q=document.getElementById('search-input').value.toLowerCase().trim();
+  let list=q?allEntries.filter(e=>e.full_name.toLowerCase().includes(q)):[...allEntries];
+  list.sort((a,b)=>{
+    let va=a[field],vb=b[field];
+    if(typeof va==='string'){va=va.toLowerCase();vb=vb.toLowerCase();}
+    return(va<vb?-1:va>vb?1:0)*sortDir;
+  });
+  renderEntries(list,total_tickets,winners,currentRaffleData.raffle.status==='active');
+}
+
+function printCertificate(){
+  if(!currentRaffleData || !currentRaffleData.winners || currentRaffleData.winners.length === 0) return;
+  document.body.classList.add('print-cert-mode');
+  const div = document.createElement('div');
+  div.className = 'print-certificate';
+  div.innerHTML = `
+    <img src="/static/logo.png" class="cert-logo"/>
+    <h1>MORTEX ÇEKİLİŞ BAŞARI SERTİFİKASI</h1>
+    <h2>${escHtml(currentRaffleData.raffle.name)} Kazananları</h2>
+    <div class="winner-box">
+      ${currentRaffleData.winners.map(w => `<div class="winner-name">${escHtml(w.full_name)}</div>`).join('')}
+    </div>
+    <div class="cert-date">Tarih: ${escHtml(currentRaffleData.raffle.draw_date)} | Onay kodu: MTX-${currentRaffleData.raffle.id}</div>
+  `;
+  document.body.appendChild(div);
+  window.print();
+  div.remove();
+  document.body.classList.remove('print-cert-mode');
+}
+
+// ── RAFFLE DETAIL ──────────────────────────────────────────────
+async function openRaffle(id){
+  currentRaffleId=id;
+  await loadRaffleDetail();
+  document.querySelectorAll('.view-section').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('view-raffle-detail').classList.remove('hidden');
+}
+
+async function loadRaffleDetail(){
+  const data=await apiFetch('/api/raffles/'+currentRaffleId+'/entries');
+  if(!data)return;
+  currentRaffleData=data;
+  const{raffle,entries,total_tickets,winners}=data;
+  allEntries=entries;
+
+  document.getElementById('detail-raffle-name').textContent=raffle.name;
+  document.getElementById('detail-raffle-date').textContent='📅 '+raffle.draw_date;
+  const sMap={active:'badge-active',drawn:'badge-drawn',cancelled:'badge-cancelled'};
+  const sLabel={active:'Aktif',drawn:'Tamamlandı',cancelled:'İptal'};
+  const statusEl=document.getElementById('detail-raffle-status');
+  statusEl.className=(sMap[raffle.status]||'badge-active')+' text-xs font-semibold px-2.5 py-0.5 rounded-full';
+  statusEl.textContent=sLabel[raffle.status]||raffle.status;
+
+  document.getElementById('stat-participants').textContent=entries.length;
+  document.getElementById('stat-tickets').textContent=total_tickets;
+  const maxOdds=entries.length>0?((Math.max(...entries.map(e=>e.tickets))/total_tickets)*100).toFixed(1)+'%':'—';
+  document.getElementById('stat-odds').textContent=maxOdds;
+
+  const isActive=raffle.status==='active';
+  document.getElementById('draw-btn').style.display=isActive?'':'none';
+  document.getElementById('winner-count-wrap').style.display=isActive?'':'none';
+  document.getElementById('reset-btn').style.display=isActive?'none':'';
+  document.getElementById('add-entry-section').style.display=isActive?'':'none';
+  document.getElementById('cert-btn').style.display=isActive?'none':'';
+
+  // Current winners
+  const winSec=document.getElementById('current-winners-section');
+  const winList=document.getElementById('current-winners-list');
+  if(winners&&winners.length>0){
+    winSec.classList.remove('hidden');
+    winList.innerHTML=winners.map(w=>`
+      <div class="flex items-center gap-2 text-sm">
+        <span class="font-bold text-amber-700">${w.rank}.</span>
+        <span class="font-semibold text-gray-800">🏆 ${escHtml(w.full_name)}</span>
+        <span class="text-xs text-gray-400 ml-auto">🎟️ ${w.tickets} bilet</span>
+      </div>`).join('');
+  }else{winSec.classList.add('hidden');}
+
+  // Render entries
+  renderEntries(entries,total_tickets,winners,isActive);
+  document.getElementById('search-input').value='';
+}
+
+function renderEntries(entries,totalTickets,winners,isActive){
+  const tbody=document.getElementById('entries-tbody');
+  const noEntries=document.getElementById('no-entries');
+  const winnerIds=new Set((winners||[]).map(w=>w.full_name));
+  if(entries.length===0){tbody.innerHTML='';noEntries.classList.remove('hidden');return;}
+  noEntries.classList.add('hidden');
+  tbody.innerHTML=entries.map((e,i)=>{
+    const odds=totalTickets>0?((e.tickets/totalTickets)*100).toFixed(1)+'%':'—';
+    const isWin=winnerIds.has(e.full_name);
+    return`<tr class="entry-row border-t border-gray-50 transition-colors ${isWin?'winner-highlight bg-amber-50':''}">
+      <td class="px-4 py-3 text-sm text-gray-400 font-mono">${i+1}</td>
+      <td class="px-4 py-3 font-semibold text-gray-800 flex items-center gap-1">${isWin?'🏆 ':''}${escHtml(e.full_name)}</td>
+      <td class="px-4 py-3 text-center"><span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-sm font-bold" style="background:rgba(245,158,11,.1);color:#D97706">🎟️ ${e.tickets}</span></td>
+      <td class="px-4 py-3 text-center text-sm font-semibold" style="color:#22D3EE">${odds}</td>
+      <td class="px-4 py-3 text-center no-print">${isActive?`<button onclick="removeEntry(${e.id})" class="text-red-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition-colors text-sm">🗑️</button>`:'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterEntries(){
+  const q=document.getElementById('search-input').value.toLowerCase().trim();
+  if(!currentRaffleData)return;
+  const{entries,total_tickets,winners}=currentRaffleData;
+  const filtered=q?entries.filter(e=>e.full_name.toLowerCase().includes(q)):entries;
+  renderEntries(filtered,total_tickets,winners,currentRaffleData.raffle.status==='active');
+}
+
+async function addEntry(){
+  const name=document.getElementById('entry-name').value.trim();
+  const tickets=parseInt(document.getElementById('entry-tickets').value)||1;
+  const errEl=document.getElementById('entry-error');errEl.classList.add('hidden');
+  if(!name){errEl.textContent='İsim Soyisim zorunludur.';errEl.classList.remove('hidden');return;}
+  const res=await apiFetch('/api/raffles/'+currentRaffleId+'/entries','POST',{full_name:name,contact:'',tickets});
+  if(res&&res.success){
+    document.getElementById('entry-name').value='';
+    document.getElementById('entry-tickets').value=1;
+    document.getElementById('entry-name').focus();
+    showToast('✅ Katılımcı eklendi!','#22D3EE');
+    loadRaffleDetail();
+  }else{errEl.textContent=res?.error||'Bir hata oluştu.';errEl.classList.remove('hidden');}
+}
+
+async function removeEntry(entryId){
+  if(!confirm('Bu katılımcıyı silmek istediğinizden emin misiniz?'))return;
+  const res=await apiFetch('/api/entries/'+entryId,'DELETE');
+  if(res&&res.success){showToast('🗑️ Katılımcı silindi.','#EF4444');loadRaffleDetail();}
+}
+
+async function importCSV(){
+  const file=document.getElementById('csv-file').files[0];
+  if(!file)return;
+  const formData=new FormData();formData.append('file',file);
+  try{
+    const res=await fetch('/api/raffles/'+currentRaffleId+'/import-csv',{method:'POST',body:formData});
+    const d=await res.json();
+    if(d.success){
+      showToast(`✅ ${d.added} katılımcı içe aktarıldı!`,'#22D3EE');
+      loadRaffleDetail();
+    }else showToast('⚠️ '+(d.error||'Hata'),'#EF4444');
+  }catch(e){showToast('🔴 Sunucu hatası.','#EF4444');}
+  document.getElementById('csv-file').value='';
+}
+
+// ── DRAW WINNER ─────────────────────────────────────────────────
+// Web Audio sound helpers
+function createAudioCtx(){return new(window.AudioContext||window.webkitAudioContext)();}
+function playDrumRoll(){
+  try{
+    const ctx=createAudioCtx();
+    let t=ctx.currentTime;
+    for(let i=0;i<60;i++){
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type='square';
+      osc.frequency.value=60+Math.random()*20;
+      gain.gain.setValueAtTime(0.08,t);gain.gain.exponentialRampToValueAtTime(0.001,t+0.08);
+      osc.start(t);osc.stop(t+0.08);
+      t+=0.04+i*0.0004;
+    }
+    setTimeout(()=>ctx.close(),3000);
+  }catch(e){}
+}
+function playFanfare(){
+  try{
+    const ctx=createAudioCtx();
+    const notes=[523,659,784,1047];
+    let t=ctx.currentTime;
+    notes.forEach(freq=>{
+      const osc=ctx.createOscillator();
+      const g=ctx.createGain();
+      osc.connect(g);g.connect(ctx.destination);
+      osc.frequency.value=freq;osc.type='sine';
+      g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+      osc.start(t);osc.stop(t+0.4);
+      t+=0.15;
+    });
+    setTimeout(()=>ctx.close(),2000);
+  }catch(e){}
+}
+
+async function drawWinner(){
+  if(!currentRaffleId)return;
+  const count=parseInt(document.getElementById('winner-count').value)||1;
+  const btn=document.getElementById('draw-btn');
+  btn.disabled=true;
+
+  // Get participant names for animation
+  const names=allEntries.length>0?allEntries.map(e=>e.full_name):['Çekiliyor...'];
+  playDrumRoll();
+
+  // Start spinning animation and API call in parallel
+  const apiPromise=apiFetch('/api/raffles/'+currentRaffleId+'/draw','POST',{count});
+  await startSpinAnimation(names,2500);
+
+  btn.disabled=false;
+  const res=await apiPromise;
+
+  document.getElementById('spinning-modal').classList.add('hidden');
+
+  if(res&&res.success){
+    showWinnerModal(res.winners);
+    startConfetti();
+    loadRaffleDetail();
+  }else{
+    showToast('⚠️ '+(res?.error||'Bir hata oluştu.'),'#EF4444');
+  }
+}
+
+function startSpinAnimation(names,durationMs){
+  if(document.documentElement.requestFullscreen){
+    document.documentElement.requestFullscreen().catch(e=>console.log(e));
+  }
+  return new Promise(resolve=>{
+    const modal=document.getElementById('spinning-modal');
+    const display=document.getElementById('spinning-name');
+    modal.classList.remove('hidden');
+    let elapsed=0,interval=60;
+    const tick=()=>{
+      display.textContent=names[Math.floor(Math.random()*names.length)];
+      elapsed+=interval;
+      // Slow down in last 800ms
+      if(elapsed>durationMs-800)interval=Math.min(interval+40,400);
+      if(elapsed<durationMs)setTimeout(tick,interval);
+      else resolve();
+    };
+    tick();
+  });
+}
+
+function showWinnerModal(winners){
+  const list=document.getElementById('winner-list');
+  list.innerHTML=winners.map(w=>`
+    <div class="rounded-xl p-3" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3)">
+      <div class="text-xs font-bold tracking-wider mb-1" style="color:#F59E0B">${winners.length>1?w.rank+'. KAZANAN':'KAZANAN'}</div>
+      <div class="text-2xl font-black text-white">${escHtml(w.full_name)}</div>
+      <div class="flex justify-center gap-3 mt-2">
+        <span class="text-xs px-2 py-1 rounded-lg font-semibold" style="background:rgba(245,158,11,.2);color:#F59E0B">🎟️ ${w.tickets} bilet</span>
+        <span class="text-xs px-2 py-1 rounded-lg font-semibold" style="background:rgba(34,211,238,.2);color:#22D3EE">🎲 %${w.odds} şans</span>
+      </div>
+    </div>`).join('');
+  document.getElementById('winner-modal').classList.remove('hidden');
+  playFanfare();
+}
+
+function closeWinnerModal(){
+  document.getElementById('winner-modal').classList.add('hidden');
+  stopConfetti();
+  if(document.fullscreenElement && document.exitFullscreen){
+      document.exitFullscreen().catch(e=>console.log(e));
+  }
+}
+
+// ── WINNERS HISTORY ─────────────────────────────────────────────
+async function loadWinnersHistory(){
+  const winners=await apiFetch('/api/winners');
+  const c=document.getElementById('winners-history-list');
+  if(!winners||winners.length===0){
+    c.innerHTML=`<div class="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100"><div class="text-5xl mb-3">🏆</div><div class="font-bold text-gray-500">Henüz kazanan yok.</div></div>`;
+    return;
+  }
+  c.innerHTML=winners.map(w=>`
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(245,158,11,.15);font-size:1.2rem">${w.rank===1?'🥇':w.rank===2?'🥈':'🥉'}</div>
+        <div>
+          <div class="font-bold text-gray-800">${escHtml(w.full_name)}</div>
+          <div class="text-xs text-gray-400">🎰 ${escHtml(w.raffle_name)} · 📅 ${w.draw_date}</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="badge-drawn text-xs font-semibold px-2.5 py-1 rounded-full">${w.rank}. Derece</span>
+        <span class="text-xs font-semibold text-gray-500">🎟️ ${w.tickets} bilet</span>
+        <button onclick="openRaffle(${w.raffle_id})" class="btn-primary px-3 py-1.5 rounded-lg text-white text-xs font-bold">Çekilişe Git →</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── SETTINGS ───────────────────────────────────────────────────
+async function changePassword(){
+  const current=document.getElementById('pw-current').value;
+  const newP=document.getElementById('pw-new').value;
+  const confirm=document.getElementById('pw-confirm').value;
+  const errEl=document.getElementById('pw-error');
+  const sucEl=document.getElementById('pw-success');
+  errEl.classList.add('hidden');sucEl.classList.add('hidden');
+  const res=await apiFetch('/api/change-password','POST',{current_password:current,new_password:newP,confirm_password:confirm});
+  if(res&&res.success){
+    sucEl.textContent=res.message;sucEl.classList.remove('hidden');
+    document.getElementById('pw-current').value='';
+    document.getElementById('pw-new').value='';
+    document.getElementById('pw-confirm').value='';
+  }else{errEl.textContent=res?.error||'Bir hata oluştu.';errEl.classList.remove('hidden');}
+}
+
+// ── CONFETTI ─────────────────────────────────────────────────
+let confettiAnimation=null;
+const COLORS=['#F59E0B','#22D3EE','#FCD34D','#06B6D4','#ffffff','#D97706','#67E8F9','#FF4747','#A78BFA'];
+function startConfetti(){
+  const canvas=document.getElementById('confetti-canvas');
+  canvas.style.display='block';
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  const pieces=Array.from({length:160},()=>({
+    x:Math.random()*canvas.width,y:Math.random()*-canvas.height,
+    w:Math.random()*10+5,h:Math.random()*8+4,
+    color:COLORS[Math.floor(Math.random()*COLORS.length)],
+    rotation:Math.random()*360,
+    vx:(Math.random()-.5)*4,vy:Math.random()*3+2,vr:(Math.random()-.5)*8,
+  }));
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;p.rotation+=p.vr;
+      if(p.y>canvas.height){p.y=-20;p.x=Math.random()*canvas.width;}
+      ctx.save();ctx.translate(p.x+p.w/2,p.y+p.h/2);ctx.rotate(p.rotation*Math.PI/180);
+      ctx.fillStyle=p.color;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();
+    });
+    confettiAnimation=requestAnimationFrame(tick);
+  }
+  tick();
+}
+function stopConfetti(){
+  if(confettiAnimation)cancelAnimationFrame(confettiAnimation);
+  const canvas=document.getElementById('confetti-canvas');
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  canvas.style.display='none';
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+async function apiFetch(url,method='GET',body=null){
+  try{
+    const opts={method,headers:{'Content-Type':'application/json'}};
+    if(body)opts.body=JSON.stringify(body);
+    const res=await fetch(url,opts);
+    if(res.status===401){showLoginScreen();return null;}
+    return await res.json();
+  }catch(e){console.error(e);showToast('🔴 Sunucu hatası.','#EF4444');return null;}
+}
+function showToast(msg,color='#22D3EE'){
+  const t=document.getElementById('toast');
+  const i=document.getElementById('toast-inner');
+  i.style.background=color;i.innerHTML=msg;
+  t.classList.remove('hidden');
+  setTimeout(()=>t.classList.add('hidden'),3500);
+}
+function escHtml(str){
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

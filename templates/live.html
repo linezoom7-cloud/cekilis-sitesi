@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>{{ raffle.name }} - Canlı Çekiliş</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+body {
+    font-family: 'Outfit', sans-serif;
+    color: #F1F5F9;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+    background-color: #050b14;
+}
+/* Premium Animated Background */
+.bg-blobs {
+    position: fixed; inset: 0; z-index: -1; overflow: hidden; background: #050b14;
+}
+.blob {
+    position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6;
+    animation: move 20s infinite alternate cubic-bezier(0.5, 0, 0.5, 1);
+}
+.blob:nth-child(1) { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #1E3A8A; animation-delay: 0s; }
+.blob:nth-child(2) { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: #9333EA; animation-delay: -5s; }
+.blob:nth-child(3) { top: 40%; left: 30%; width: 40vw; height: 40vw; background: #D97706; animation-delay: -10s; opacity: 0.4; }
+@keyframes move {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(10vw, 10vh) scale(1.2); }
+}
+
+/* Glassmorphism Panels */
+.glass-box {
+    background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border-radius: 2rem;
+}
+
+/* Slot Machine Animation Container */
+#slot-machine {
+    height: 120px; overflow: hidden; position: relative;
+    border-top: 2px solid rgba(255,255,255,0.1); border-bottom: 2px solid rgba(255,255,255,0.1);
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.2) 80%, rgba(0,0,0,0.8) 100%);
+}
+.slot-text {
+    font-size: 4rem; font-weight: 900; line-height: 120px; text-align: center;
+    color: white; text-transform: uppercase; letter-spacing: 2px;
+    background: -webkit-linear-gradient(45deg, #F59E0B, #FCD34D);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* Wait Pulse */
+.wait-pulse {
+    animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulseGlow {
+    0%, 100% { opacity: 1; box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); }
+    50% { opacity: .5; box-shadow: 0 0 40px rgba(245, 158, 11, 0.5); }
+}
+
+.winner-card {
+    background: linear-gradient(135deg, rgba(15, 36, 64, 0.8), rgba(30, 58, 95, 0.8));
+    border: 2px solid #22D3EE;
+    box-shadow: 0 0 40px rgba(34, 211, 238, 0.4);
+    transform: scale(0.9); opacity: 0;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.winner-card.show {
+    transform: scale(1); opacity: 1;
+}
+
+/* Audio button */
+.audio-btn { transition: all 0.3s; }
+.audio-btn:hover { background: rgba(255,255,255,0.1); }
+</style>
+</head>
+<body>
+
+<div class="bg-blobs">
+    <div class="blob"></div><div class="blob"></div><div class="blob"></div>
+</div>
+
+<div class="p-6 md:p-12 relative z-10 flex flex-col items-center min-h-screen">
+    
+    <!-- Top Bar -->
+    <div class="w-full flex justify-between items-center mb-8">
+        <a href="/" class="text-white/60 hover:text-white transition-colors font-semibold flex items-center gap-2 bg-white/5 py-2 px-4 rounded-xl backdrop-blur-sm border border-white/5">
+            <span class="text-xl leading-none">←</span> Ana Sayfa
+        </a>
+        <button id="audio-toggle" class="audio-btn text-white/60 hover:text-white font-semibold flex items-center gap-2 bg-white/5 py-2 px-4 rounded-xl backdrop-blur-sm border border-white/5">
+            <span id="audio-icon">🔇</span> Ses
+        </button>
+    </div>
+
+    <!-- Header Box -->
+    <div class="text-center mb-12 w-full max-w-4xl">
+        <div class="inline-flex items-center gap-3 p-1.5 pr-4 bg-amber-500/20 rounded-full mb-6 border border-amber-500/30">
+            <div class="bg-amber-500 text-white text-xs font-black px-3 py-1.5 rounded-full uppercase tracking-widest animate-pulse flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_white]"></span>
+                CANLI
+            </div>
+            <span class="text-amber-100 font-semibold tracking-wide text-sm">Katılımcı: <span id="p-count">...</span></span>
+        </div>
+        
+        <h1 id="raffle-name" class="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-white drop-shadow-2xl leading-tight mb-4">
+            {{ raffle.name }}
+        </h1>
+    </div>
+
+    <!-- Main Live Box -->
+    <div class="glass-box w-full max-w-3xl p-8 md:p-16 flex flex-col items-center justify-center min-h-[400px] text-center relative overflow-hidden">
+        
+        <!-- WAITING STATE -->
+        <div id="state-waiting" class="flex flex-col items-center">
+            <div class="w-24 h-24 rounded-full border-4 border-white/10 border-t-amber-500 animate-spin mb-8"></div>
+            <h2 class="text-3xl md:text-4xl font-light text-white/80 tracking-wide">
+                Çekilişin Başlaması<br/><span class="font-bold text-white mt-2 block">Bekleniyor...</span>
+            </h2>
+        </div>
+
+        <!-- SPINNING / SLOT STATE -->
+        <div id="state-spinning" class="hidden w-full flex flex-col items-center">
+            <div class="text-amber-500 font-bold tracking-widest uppercase mb-6 text-xl">Kazanan Belirleniyor</div>
+            <div id="slot-machine" class="w-full">
+                <div id="slot-text" class="slot-text">???</div>
+            </div>
+            <div class="mt-8 flex justify-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-amber-400 animate-ping" style="animation-delay:0s"></span>
+                <span class="w-3 h-3 rounded-full bg-amber-400 animate-ping" style="animation-delay:.15s"></span>
+                <span class="w-3 h-3 rounded-full bg-amber-400 animate-ping" style="animation-delay:.3s"></span>
+            </div>
+        </div>
+
+        <!-- WINNERS STATE -->
+        <div id="state-winners" class="hidden w-full">
+            <div class="text-cyan-400 font-black tracking-widest uppercase mb-8 text-2xl drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">
+                KAZANANLAR
+            </div>
+            <div id="winners-list" class="flex flex-col gap-6 items-center">
+                <!-- Winner cards injected here -->
+            </div>
+        </div>
+
+    </div>
+    
+    <div class="mt-12 text-white/30 text-xs font-semibold uppercase tracking-widest font-mono">
+        Güvenli Çekiliş Sistemi
+    </div>
+</div>
+
+<script>
+const RAFFLE_ID = parseInt("{{ raffle.id }}", 10) || 0;
+let previousWinnerCount = -1;
+let isAnimating = false;
+let audioEnabled = false;
+let cachedNames = ["Bekleniyor..."];
+
+// Audio Setup
+document.getElementById('audio-toggle').addEventListener('click', () => {
+    audioEnabled = !audioEnabled;
+    document.getElementById('audio-icon').innerText = audioEnabled ? "🔊" : "🔇";
+    if (audioEnabled) {
+        // Init context on gesture to unlock
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        ctx.resume();
+    }
+});
+
+function createAudioCtx() { return new (window.AudioContext || window.webkitAudioContext)(); }
+
+function playTick() {
+    if (!audioEnabled) return;
+    try {
+        const ctx = createAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'triangle'; osc.frequency.value = 800 + Math.random()*400;
+        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.05);
+    } catch(e){}
+}
+
+function playFanfare() {
+    if (!audioEnabled) return;
+    try {
+        const ctx = createAudioCtx();
+        const notes = [523, 659, 784, 1047]; // C E G C
+        let t = ctx.currentTime;
+        notes.forEach(freq => {
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.connect(g); g.connect(ctx.destination);
+            osc.frequency.value = freq; osc.type = 'sine';
+            g.gain.setValueAtTime(0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+            osc.start(t); osc.stop(t + 0.5);
+            t += 0.15;
+        });
+    } catch(e){}
+}
+
+function triggerConfetti() {
+    const duration = 5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 100, zIndex: 9999 };
+
+    function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+
+    const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(interval);
+        const particleCount = 60 * (timeLeft / duration);
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+    }, 250);
+}
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+function escHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Main Polling Loop
+async function pollStatus() {
+    if (isAnimating) return;
+    try {
+        const res = await fetch(`/api/raffles/${RAFFLE_ID}/public`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        document.getElementById('p-count').textContent = data.raffle.participant_count;
+        if (data.raffle.participant_names && data.raffle.participant_names.length > 0) {
+            cachedNames = data.raffle.participant_names;
+        }
+
+        const winners = data.winners || [];
+        
+        // Active -> Drawn Transition (ANIMATION TRIGGER)
+        if (data.raffle.status === 'drawn' && winners.length > 0 && previousWinnerCount === 0) {
+            isAnimating = true;
+            await runDrawAnimation(winners);
+            isAnimating = false;
+        } 
+        // Normal state display
+        else if (!isAnimating) {
+            if (data.raffle.status === 'drawn' && winners.length > 0) {
+                showWinnersInstant(winners);
+            } else {
+                showWaiting();
+            }
+        }
+        
+        previousWinnerCount = winners.length;
+    } catch (e) { console.error("Poll error", e); }
+}
+
+async function runDrawAnimation(winners) {
+    document.getElementById('state-waiting').classList.add('hidden');
+    document.getElementById('state-winners').classList.add('hidden');
+    document.getElementById('state-spinning').classList.remove('hidden');
+
+    const slotText = document.getElementById('slot-text');
+    const totalDuration = 4000; 
+    let elapsed = 0;
+    let tickSpeed = 50;
+
+    // Slot machine rolling
+    while (elapsed < totalDuration) {
+        slotText.textContent = cachedNames[Math.floor(Math.random() * cachedNames.length)];
+        playTick();
+        await sleep(tickSpeed);
+        elapsed += tickSpeed;
+        
+        if (elapsed > 2500) tickSpeed = 100;
+        if (elapsed > 3200) tickSpeed = 200;
+        if (elapsed > 3700) tickSpeed = 300;
+    }
+
+    // Hide spinning, show winners with grand reveal
+    document.getElementById('state-spinning').classList.add('hidden');
+    document.getElementById('state-winners').classList.remove('hidden');
+    
+    const wList = document.getElementById('winners-list');
+    wList.innerHTML = winners.map(w => `
+        <div class="winner-card p-6 md:p-8 rounded-3xl w-full flex items-center gap-6">
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-400 to-indigo-500 flex items-center justify-center text-4xl font-black text-white shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                #${w.rank}
+            </div>
+            <div class="text-left flex-1">
+                <div class="text-cyan-300 font-bold uppercase tracking-widest text-sm mb-1">KAZANAN TALİHLİ</div>
+                <div class="text-3xl md:text-5xl font-black text-white">${escHtml(w.full_name)}</div>
+            </div>
+        </div>
+    `).join('');
+
+    // Trigger reveal CSS
+    setTimeout(() => {
+        document.querySelectorAll('.winner-card').forEach(c => c.classList.add('show'));
+    }, 50);
+
+    triggerConfetti();
+    playFanfare();
+}
+
+function showWaiting() {
+    document.getElementById('state-waiting').classList.remove('hidden');
+    document.getElementById('state-spinning').classList.add('hidden');
+    document.getElementById('state-winners').classList.add('hidden');
+}
+
+function showWinnersInstant(winners) {
+    document.getElementById('state-waiting').classList.add('hidden');
+    document.getElementById('state-spinning').classList.add('hidden');
+    document.getElementById('state-winners').classList.remove('hidden');
+    
+    const wList = document.getElementById('winners-list');
+    wList.innerHTML = winners.map(w => `
+        <div class="winner-card show p-6 md:p-8 rounded-3xl w-full flex items-center gap-6">
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-400 to-indigo-500 flex items-center justify-center text-4xl font-black text-white shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                #${w.rank}
+            </div>
+            <div class="text-left flex-1">
+                <div class="text-cyan-300 font-bold uppercase tracking-widest text-sm mb-1">KAZANAN TALİHLİ</div>
+                <div class="text-3xl md:text-5xl font-black text-white">${escHtml(w.full_name)}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Start
+setInterval(pollStatus, 1500);
+pollStatus();
+</script>
+</body>
+</html>
