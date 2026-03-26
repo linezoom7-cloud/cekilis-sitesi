@@ -3,3 +3,4 @@ Flask-Session==0.8.0
 Werkzeug==3.0.3
 openpyxl
 Flask-Limiter
+gunicorn
