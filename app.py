@@ -589,9 +589,14 @@ def export_all_winners():
 # Main
 # ---------------------------------------------------------------------------
 
+with app.app_context():
+    try:
+        init_db()
+        _ensure_password_hashed()  # Auto-migrate plain text password to hash
+    except Exception as e:
+        print(f"Veritabanı başlatma hatası: {e}")
+
 if __name__ == "__main__":
-    init_db()
-    _ensure_password_hashed()  # Auto-migrate plain text password to hash
     print("\n🎰 Mortex Çekiliş v3 (Secured) başlatılıyor...")
     print("🌐 Adres: http://127.0.0.1:5000")
     print("🔑 Admin: admin  |  Şifre: mortex2024")
